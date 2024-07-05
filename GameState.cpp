@@ -12,16 +12,16 @@ namespace Sonar
 {
     std::array<std::array<std::array<int, GameState::GRID_SIZE>, GameState::GRID_SIZE>, GameState::NUM_SHAPES> GameState::blockShapes = { {
         {{
-            {0, 0, 0, 0},
-            {1, 1, 1, 1},  // I shape
+            {1, 1, 1, 1},
+            {0, 0, 0, 0},  // I shape
             {0, 0, 0, 0},
             {0, 0, 0, 0}
         }},
         {{
-            {0, 1, 0, 0},
-            {0, 1, 0, 0},  // T shape
-            {0, 1, 0, 0},
-            {0, 1, 0, 0}
+            {1, 0, 0, 0},
+            {1, 0, 0, 0},  // T shape
+            {1, 0, 0, 0},
+            {1, 0, 0, 0}
         }}
     } };
 
@@ -29,12 +29,24 @@ namespace Sonar
 
     void GameState::Init()
     {
+        scoreint = 0;
         gameState = STATE_PLAYING;
         turn = PLAYER_PIECE;
 
         this->_data->assets.LoadTexture("Pause Button", PAUSE_BUTTON);
         this->_data->assets.LoadTexture("Grid Sprite", GRID_SPRITE_FILEPATH);
         this->_data->assets.LoadTexture("X Piece", X_PIECE_FILEPATH);
+
+        this->_data->assets.LoadFont("Score Font", SCORE);
+
+        score.setFont(this->_data->assets.GetFont("Score Font"));
+        score.setCharacterSize(26);
+        score.setFillColor(sf::Color::White);
+        score.setPosition(20, 20);
+
+        std::stringstream ss;
+        ss << "SCORE: " << scoreint;
+        score.setString(ss.str());
 
         _background.setTexture(this->_data->assets.GetTexture("Background"));
         _pauseButton.setTexture(this->_data->assets.GetTexture("Pause Button"));
@@ -110,24 +122,49 @@ namespace Sonar
                     int gridX = (blockPosition.x - gridBounds.left) / 55;
                     int gridY = (blockPosition.y - gridBounds.top) / 55;
 
-                    // Place the block in the grid
+                    bool canPlaceBlock = true;
+
+                    // Check if the block can be placed within the grid bounds
                     for (int i = 0; i < GRID_SIZE; i++)
                     {
                         for (int j = 0; j < GRID_SIZE; j++)
                         {
-                            if (currentBlock[i][j] == 1 && gridX + i < 9 && gridY + j < 9)
+                            if (currentBlock[i][j] == 1)
                             {
-                                _gridArray[gridX + i][gridY + j] = 1;
+                                int posX = gridX + i;
+                                int posY = gridY + j;
+
+                                if (posX < 0 || posX >= 9 || posY < 0 || posY >= 9 || _gridArray[posX][posY] != EMPTY_PIECE)
+                                {
+                                    canPlaceBlock = false;
+                                    break;
+                                }
                             }
                         }
+                        if (!canPlaceBlock) break;
                     }
 
-                    // Clear completed rows and columns
-                    clearCompletedRowsAndColumns();
+                    if (canPlaceBlock)
+                    {
+                        // Place the block in the grid
+                        for (int i = 0; i < GRID_SIZE; i++)
+                        {
+                            for (int j = 0; j < GRID_SIZE; j++)
+                            {
+                                if (currentBlock[i][j] == 1)
+                                {
+                                    _gridArray[gridX + i][gridY + j] = 1;
+                                }
+                            }
+                        }
 
-                    // Generate a new block
-                    generateRandomBlock();
-                    blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
+                        // Clear completed rows and columns
+                        clearCompletedRowsAndColumns();
+
+                        // Generate a new block
+                        generateRandomBlock();
+                        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
+                    }
                 }
             }
 
@@ -139,7 +176,12 @@ namespace Sonar
         }
     }
 
-    void GameState::Update(float dt) {}
+    void GameState::Update(float dt)
+    {
+        std::stringstream ss;
+        ss << "S C O R E : " << scoreint;
+        score.setString(ss.str());
+    }
 
     void GameState::Draw(float dt)
     {
@@ -173,6 +215,8 @@ namespace Sonar
             }
         }
 
+        this->_data->window.draw(score);
+
         this->_data->window.display();
     }
 
@@ -192,10 +236,14 @@ namespace Sonar
 
     void GameState::clearCompletedRowsAndColumns()
     {
+        bool is = false;
+        bool rowComplete;
+        bool columnComplete;
+        bool boxComplete;
         // Check and clear completed rows
         for (int i = 0; i < 9; i++)
         {
-            bool rowComplete = true;
+             rowComplete = true;
             for (int j = 0; j < 9; j++)
             {
                 if (_gridArray[i][j] == EMPTY_PIECE)
@@ -206,6 +254,8 @@ namespace Sonar
             }
             if (rowComplete)
             {
+                scoreint += 18;
+
                 for (int j = 0; j < 9; j++)
                 {
                     _gridArray[i][j] = EMPTY_PIECE;
@@ -216,7 +266,7 @@ namespace Sonar
         // Check and clear completed columns
         for (int j = 0; j < 9; j++)
         {
-            bool columnComplete = true;
+             columnComplete = true;
             for (int i = 0; i < 9; i++)
             {
                 if (_gridArray[i][j] == EMPTY_PIECE)
@@ -227,9 +277,48 @@ namespace Sonar
             }
             if (columnComplete)
             {
+                scoreint += 18;
+
                 for (int i = 0; i < 9; i++)
                 {
                     _gridArray[i][j] = EMPTY_PIECE;
+                }
+            }
+        }
+
+        // Check the 3x3 grids
+        for (int startX = 0; startX < 9; startX += 3)
+        {
+            for (int startY = 0; startY < 9; startY += 3)
+            {
+                 boxComplete = true;
+
+                for (int i = 0; i < 3; i++)
+                {
+                    for (int j = 0; j < 3; j++)
+                    {
+                        if (_gridArray[startX + i][startY + j] == EMPTY_PIECE)
+                        {
+                            boxComplete = false;
+                            break;
+                        }
+                    }
+                    if (!boxComplete)
+                    {
+                        break;
+                    }
+                }
+
+                if (boxComplete)
+                {
+                    scoreint += 18;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        for (int j = 0; j < 3; j++)
+                        {
+                            _gridArray[startX + i][startY + j] = EMPTY_PIECE;
+                        }
+                    }
                 }
             }
         }

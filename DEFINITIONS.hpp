@@ -9,7 +9,7 @@
 #define MAIN_MENU_BACKGROUND_FILEPATH "Resources/res/Main Menu Background.png"
 #define GAME_BACKGROUND_FILEPATH "Resources/res/Main Menu Background.png"
 #define PAUSE_BACKGROUND_FILEPATH "Resources/res/Main Menu Background.png"
-
+#define	SCORE "Resources/fonts/Marker Felt.ttf"
 #define MAIN_MENU_TITLE_FILEPATH "Resources/res/Game Title.png"
 
 #define MAIN_MENU_PLAY_BUTTON "Resources/res/Play Button.png"

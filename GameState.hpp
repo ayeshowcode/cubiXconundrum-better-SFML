@@ -34,12 +34,14 @@ namespace Sonar
 		void clearCompletedRowsAndColumns();
 
 		GameDataRef _data;
-
+		int scoreint;
 		sf::Sprite _background;
 		sf::Sprite _pauseButton;
 		sf::Sprite _gridSprite;
 		sf::Sprite blockSprite;
 		sf::Sprite _gridPieces[9][9];
+		sf::Font font;
+		sf::Text score;
 		int _gridArray[9][9];
 		int turn;
 		int gameState;
