@@ -19,7 +19,7 @@ namespace Sonar
 
 	private:
 		static const int GRID_SIZE = 4;  // Grid size for the Tetris block
-		static const int NUM_SHAPES = 2; // Number of different shapes
+		static const int NUM_SHAPES = 30; // Number of different shapes
 		static std::array<std::array<std::array<int, GRID_SIZE>, GRID_SIZE>, NUM_SHAPES> blockShapes; // Block shapes
 
 		std::array<std::array<int, GRID_SIZE>, GRID_SIZE> currentBlock; // Current block
