@@ -42,9 +42,12 @@ namespace Sonar
 		sf::Sprite _gridPieces[9][9];
 		sf::Font font;
 		sf::Text score;
+		sf::Clock clock;
+
 		int _gridArray[9][9];
 		int turn;
 		int gameState;
+
 		bool isDragging;
 	};
 }

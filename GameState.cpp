@@ -4,6 +4,8 @@
 #include "DEFINITIONS.hpp"
 #include "PauseState.hpp"
 #include "GameOverState.hpp"
+#include <thread>
+#include <chrono>
 
 #include <iostream>
 #include <ctime>
@@ -193,13 +195,12 @@ namespace Sonar
     }},
 } };
 
-    GameState::GameState(GameDataRef data) : _data(data), isDragging(false) {}
+    GameState::GameState(GameDataRef data) : _data(data), isDragging(false), gameState(STATE_PLAYING) {}
 
     void GameState::Init()
     {
         scoreint = 0;
         gameState = STATE_PLAYING;
-        turn = PLAYER_PIECE;
 
         this->_data->assets.LoadTexture("Pause Button", PAUSE_BUTTON);
         this->_data->assets.LoadTexture("Grid Sprite", GRID_SPRITE_FILEPATH);
@@ -235,75 +236,92 @@ namespace Sonar
         InitGridPieces();
 
         // Initialize the block position at the center bottom of the screen
-        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
+        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 45 * GRID_SIZE);
     }
 
-    void GameState::generateRandomBlock()
-    {
+    void GameState::generateRandomBlock() {
         std::srand(static_cast<unsigned>(std::time(nullptr)));
         int index = std::rand() % NUM_SHAPES;
 
-        for (int i = 0; i < GRID_SIZE; i++)
-        {
-            for (int j = 0; j < GRID_SIZE; j++)
-            {
-                currentBlock[i][j] = blockShapes[index][i][j];
+        bool foundSpace = false;
+
+        // Initialize block position below the grid center
+        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
+
+        for (int x = 0; x <= 9 - GRID_SIZE; x++) {
+            for (int y = 0; y <= 9 - GRID_SIZE; y++) {
+                bool canPlaceBlock = true;
+                for (int i = 0; i < GRID_SIZE; i++) {
+                    for (int j = 0; j < GRID_SIZE; j++) {
+                        if (blockShapes[index][i][j] == 1) {
+                            if (x + i >= 9 || y + j >= 9 || _gridArray[x + i][y + j] != EMPTY_PIECE) {
+                                canPlaceBlock = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!canPlaceBlock) break;
+                }
+                if (canPlaceBlock) {
+                    foundSpace = true;
+                    for (int i = 0; i < GRID_SIZE; i++) {
+                        for (int j = 0; j < GRID_SIZE; j++) {
+                            currentBlock[i][j] = blockShapes[index][i][j];
+                        }
+                    }
+                    break;
+                }
             }
+            if (foundSpace) break;
+        }
+
+        // If no space found, trigger game over
+        if (!foundSpace) {
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            this->_data->machine.AddState(StateRef(new GameOverState(_data)), true);
         }
     }
 
-    void GameState::HandleInput()
-    {
+    void GameState::HandleInput() {
         sf::Event event;
 
-        while (this->_data->window.pollEvent(event))
-        {
-            if (sf::Event::Closed == event.type)
-            {
+        while (this->_data->window.pollEvent(event)) {
+            if (sf::Event::Closed == event.type) {
                 this->_data->window.close();
             }
 
-            if (this->_data->input.IsSpriteClicked(this->_pauseButton, sf::Mouse::Left, this->_data->window))
-            {
+            if (this->_data->input.IsSpriteClicked(this->_pauseButton, sf::Mouse::Left, this->_data->window)) {
                 this->_data->machine.AddState(StateRef(new PauseState(_data)), false);
             }
 
-            if (event.type == sf::Event::MouseButtonPressed)
-            {
+            if (event.type == sf::Event::MouseButtonPressed) {
                 sf::Vector2i mousePos = sf::Mouse::getPosition(this->_data->window);
                 sf::FloatRect blockBounds(blockPosition.x, blockPosition.y, GRID_SIZE * 55, GRID_SIZE * 55);
 
-                if (blockBounds.contains(static_cast<sf::Vector2f>(mousePos)))
-                {
+                if (blockBounds.contains(static_cast<sf::Vector2f>(mousePos))) {
                     isDragging = true;
                 }
             }
 
-            if (event.type == sf::Event::MouseButtonReleased)
-            {
+            if (event.type == sf::Event::MouseButtonReleased) {
                 isDragging = false;
 
                 // Check if the block is placed within the grid bounds
                 sf::FloatRect gridBounds = _gridSprite.getGlobalBounds();
-                if (gridBounds.contains(blockPosition))
-                {
-                    int gridX = (blockPosition.x - gridBounds.left) / 55;
-                    int gridY = (blockPosition.y - gridBounds.top) / 55;
+                if (gridBounds.contains(blockPosition)) {
+                    int gridX = static_cast<int>((blockPosition.x - gridBounds.left) / 55);
+                    int gridY = static_cast<int>((blockPosition.y - gridBounds.top) / 55);
 
                     bool canPlaceBlock = true;
 
                     // Check if the block can be placed within the grid bounds
-                    for (int i = 0; i < GRID_SIZE; i++)
-                    {
-                        for (int j = 0; j < GRID_SIZE; j++)
-                        {
-                            if (currentBlock[i][j] == 1)
-                            {
+                    for (int i = 0; i < GRID_SIZE; i++) {
+                        for (int j = 0; j < GRID_SIZE; j++) {
+                            if (currentBlock[i][j] == 1) {
                                 int posX = gridX + i;
                                 int posY = gridY + j;
 
-                                if (posX < 0 || posX >= 9 || posY < 0 || posY >= 9 || _gridArray[posX][posY] != EMPTY_PIECE)
-                                {
+                                if (posX < 0 || posX >= 9 || posY < 0 || posY >= 9 || _gridArray[posX][posY] != EMPTY_PIECE) {
                                     canPlaceBlock = false;
                                     break;
                                 }
@@ -312,15 +330,11 @@ namespace Sonar
                         if (!canPlaceBlock) break;
                     }
 
-                    if (canPlaceBlock)
-                    {
+                    if (canPlaceBlock) {
                         // Place the block in the grid
-                        for (int i = 0; i < GRID_SIZE; i++)
-                        {
-                            for (int j = 0; j < GRID_SIZE; j++)
-                            {
-                                if (currentBlock[i][j] == 1)
-                                {
+                        for (int i = 0; i < GRID_SIZE; i++) {
+                            for (int j = 0; j < GRID_SIZE; j++) {
+                                if (currentBlock[i][j] == 1) {
                                     _gridArray[gridX + i][gridY + j] = 1;
                                 }
                             }
@@ -331,13 +345,15 @@ namespace Sonar
 
                         // Generate a new block
                         generateRandomBlock();
+                    }
+                    else {
+                        // Reset block to initial position if placement fails
                         blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
                     }
                 }
             }
 
-            if (event.type == sf::Event::MouseMoved && isDragging)
-            {
+            if (event.type == sf::Event::MouseMoved && isDragging) {
                 sf::Vector2i mousePos = sf::Mouse::getPosition(this->_data->window);
                 blockPosition = static_cast<sf::Vector2f>(mousePos);
             }
