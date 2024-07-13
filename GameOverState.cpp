@@ -5,18 +5,29 @@
 #include "DEFINITIONS.hpp"
 #include "GameState.hpp"
 #include "MainMenuState.hpp"
-
+#include <sstream>
 #include <iostream>
 
 namespace Sonar
 {
-	GameOverState::GameOverState(GameDataRef data) : _data(data)
+	GameOverState::GameOverState(GameDataRef data, int score) : _data(data), scoreint(score)
 	{
 
 	}
 
 	void GameOverState::Init()
 	{
+		this->_data->assets.LoadFont("Score Font", SCORE);
+
+		score.setFont(this->_data->assets.GetFont("Score Font"));
+		score.setCharacterSize(86);
+		score.setFillColor(sf::Color::White);
+		score.setPosition(285, 30);
+
+		std::stringstream ss;
+		ss << "GameOver" << std::endl << "SCORE: " << scoreint;
+		score.setString(ss.str());
+
 		this->_data->assets.LoadTexture("Retry Button", RETRY_BUTTON);
 		this->_data->assets.LoadTexture("Home Button", HOME_BUTTON);
 
@@ -64,7 +75,7 @@ namespace Sonar
 
 		this->_data->window.draw(this->_retryButton);
 		this->_data->window.draw(this->_homeButton);
-
+		this->_data->window.draw(score);
 		this->_data->window.display();
 	}
 }

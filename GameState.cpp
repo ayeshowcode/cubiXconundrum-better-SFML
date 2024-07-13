@@ -213,6 +213,11 @@ namespace Sonar
         score.setFillColor(sf::Color::White);
         score.setPosition(20, 20);
 
+        nospaceleft.setFont(this->_data->assets.GetFont("Score Font"));
+        nospaceleft.setCharacterSize(100);
+        nospaceleft.setFillColor(sf::Color::Black);
+        nospaceleft.setPosition(210, 300);
+
         std::stringstream ss;
         ss << "SCORE: " << scoreint;
         score.setString(ss.str());
@@ -239,22 +244,29 @@ namespace Sonar
         blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 45 * GRID_SIZE);
     }
 
-    void GameState::generateRandomBlock() {
+    void GameState::generateRandomBlock()
+    {
         std::srand(static_cast<unsigned>(std::time(nullptr)));
         int index = std::rand() % NUM_SHAPES;
 
         bool foundSpace = false;
 
         // Initialize block position below the grid center
-        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
+        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 45 * GRID_SIZE);
 
-        for (int x = 0; x <= 9 - GRID_SIZE; x++) {
-            for (int y = 0; y <= 9 - GRID_SIZE; y++) {
+        for (int x = 0; x <= 9 - GRID_SIZE; x++)
+        {
+            for (int y = 0; y <= 9 - GRID_SIZE; y++)
+            {
                 bool canPlaceBlock = true;
-                for (int i = 0; i < GRID_SIZE; i++) {
-                    for (int j = 0; j < GRID_SIZE; j++) {
-                        if (blockShapes[index][i][j] == 1) {
-                            if (x + i >= 9 || y + j >= 9 || _gridArray[x + i][y + j] != EMPTY_PIECE) {
+                for (int i = 0; i < GRID_SIZE; i++)
+                {
+                    for (int j = 0; j < GRID_SIZE; j++)
+                    {
+                        if (blockShapes[index][i][j] == 1)
+                        {
+                            if (x + i >= 9 || y + j >= 9 || _gridArray[x + i][y + j] != EMPTY_PIECE)
+                            {
                                 canPlaceBlock = false;
                                 break;
                             }
@@ -262,10 +274,13 @@ namespace Sonar
                     }
                     if (!canPlaceBlock) break;
                 }
-                if (canPlaceBlock) {
+                if (canPlaceBlock)
+                {
                     foundSpace = true;
-                    for (int i = 0; i < GRID_SIZE; i++) {
-                        for (int j = 0; j < GRID_SIZE; j++) {
+                    for (int i = 0; i < GRID_SIZE; i++)
+                    {
+                        for (int j = 0; j < GRID_SIZE; j++)
+                        {
                             currentBlock[i][j] = blockShapes[index][i][j];
                         }
                     }
@@ -276,9 +291,16 @@ namespace Sonar
         }
 
         // If no space found, trigger game over
-        if (!foundSpace) {
+        if (!foundSpace)
+        {
+            std::stringstream ss;
+            ss << "No space left!" << std::endl << "Game Over!" << std::endl;
+            nospaceleft.setString(ss.str());
+
+           
+
             std::this_thread::sleep_for(std::chrono::seconds(5));
-            this->_data->machine.AddState(StateRef(new GameOverState(_data)), true);
+            this->_data->machine.AddState(StateRef(new GameOverState(_data, scoreint)), true);
         }
     }
 
@@ -341,14 +363,16 @@ namespace Sonar
                         }
 
                         // Clear completed rows and columns
+                        
                         clearCompletedRowsAndColumns();
+                        scoreint += 3;
 
                         // Generate a new block
                         generateRandomBlock();
                     }
                     else {
                         // Reset block to initial position if placement fails
-                        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 55 * GRID_SIZE);
+                        blockPosition = sf::Vector2f((SCREEN_WIDTH - GRID_SIZE * 55) / 2, SCREEN_HEIGHT - 45 * GRID_SIZE);
                     }
                 }
             }
@@ -400,9 +424,12 @@ namespace Sonar
         }
 
         this->_data->window.draw(score);
+        this->_data->window.draw(nospaceleft);
 
         this->_data->window.display();
     }
+
+
 
     void GameState::InitGridPieces()
     {

@@ -42,7 +42,11 @@ namespace Sonar
 		sf::Sprite _gridPieces[9][9];
 		sf::Font font;
 		sf::Text score;
+		sf::Text nospaceleft;
 		sf::Clock clock;
+		bool noSpaceLeft; // Add this flag
+
+	    
 
 		int _gridArray[9][9];
 		int turn;
